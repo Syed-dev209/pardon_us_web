@@ -22,10 +22,24 @@ class QuizScreen extends StatefulWidget {
 class _QuizScreenState extends State<QuizScreen> {
   FirebaseFirestore _firestore;
   List<ListTile> quizcards=[];
+  bool attempt;
 
-  Widget buildTile(String quizTitle,String duedate,String dueTime,String type,String docId,String imgUrl){
+
+  Widget buildStudentTile(String quizTitle, String duedate, String dueTime,
+      String type, String docId, String imgUrl) {
+    lockQuiz(docId, duedate);
+    print('printing attempt $attempt');
     return ListTile(
-      title: QuizCard(quizTitle,duedate,dueTime,type,widget.participantStatus,docId,imgUrl),
+      title: QuizCard(quizTitle, duedate, dueTime, type,
+          widget.participantStatus, docId, imgUrl, attempt),
+    );
+  }
+  Widget buildTeacherTile(String quizTitle, String duedate, String dueTime,
+      String type, String docId, String imgUrl) {
+    lockQuiz(docId, duedate);
+    return ListTile(
+      title: QuizCard(quizTitle, duedate, dueTime, type,
+          widget.participantStatus, docId, imgUrl, false),
     );
   }
   @override
@@ -50,29 +64,41 @@ class _QuizScreenState extends State<QuizScreen> {
             child: ListView(
               children: [
                 widget.participantStatus=='Teacher'?
-                    LayoutBuilder(
-                      builder: (context,constraints)
-                      {
-                        List<ListTile> teacherCards=[];
-                        for(int i= 0;i<=1;i++)
-                          {
-                            var a = ListTile(
-                              title:QuizCard('Students list','Date','Time','Mcqs','Teacher',"","") ,
-                            );
-                            teacherCards.add(a);
-                          }
-                        if(constraints.maxWidth<839)
-                          {
-
-
-                            return SmallQuizScreen(teacherCards);
-                          }
-                        else
-                          {
-                            return LargeQuizScreen(teacherCards);
-                          }
-                      },
-                    )
+                StreamBuilder(
+                  stream: _firestore
+                      .collection('quizes')
+                      .doc(Provider.of<UserDetails>(context, listen: false)
+                      .currentClassCode)
+                      .collection('quiz')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Center(
+                        child: CircularProgressIndicator(
+                          backgroundColor: Colors.indigo,
+                        ),
+                      );
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text('Server error'),
+                      );
+                    }
+                    final quizDetails = snapshot.data.docs;
+                    for (var qd in quizDetails) {
+                      quizcards.add(buildTeacherTile(
+                          qd.data()['title'],
+                          qd.data()['date'],
+                          qd.data()['time'],
+                          qd.data()['type'],
+                          qd.id,
+                          qd.data()['imageUrl']));
+                    }
+                    return Column(
+                      children: quizcards,
+                    );
+                  },
+                )
                 // Column(
                 //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 //   crossAxisAlignment: CrossAxisAlignment.end,
@@ -101,7 +127,7 @@ class _QuizScreenState extends State<QuizScreen> {
                    final quizDetails = snapshot.data.docs;
                    for(var qd in quizDetails)
                    {
-                     quizcards.add(buildTile(qd.data()['title'], qd.data()['date'], qd.data()['time'], qd.data()['type'],qd.id,qd.data()['imageUrl']));
+                     quizcards.add(buildStudentTile(qd.data()['title'], qd.data()['date'], qd.data()['time'], qd.data()['type'],qd.id,qd.data()['imageUrl']));
                    }
 
                    return LayoutBuilder(
@@ -149,5 +175,43 @@ class _QuizScreenState extends State<QuizScreen> {
 
         ]
     );
+  }
+  void lockQuiz(String quizDocID, String dueDate) async {
+    bool check = await checkAttempt(quizDocID, dueDate);
+    print(check);
+    attempt = check;
+  }
+
+  Future<bool> checkAttempt(String quizDocID, String dueDate) async {
+    String id;
+    try {
+      DateTime due = DateTime.parse(dueDate);
+      final check = due.compareTo(DateTime.now());
+      if (check >= 0) {
+        return true;
+      } else {
+        final user = await _firestore
+            .collection('quizes')
+            .doc(Provider.of<UserDetails>(context, listen: false)
+            .currentClassCode)
+            .collection('quiz')
+            .doc(quizDocID)
+            .collection('attemptedBy')
+            .where('name',
+            isEqualTo:
+            Provider.of<UserDetails>(context, listen: false).username)
+            .get();
+        for (var data in user.docs) {
+          id = data.id;
+        }
+        if (id != null) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+    } catch (e) {
+      return false;
+    }
   }
 }

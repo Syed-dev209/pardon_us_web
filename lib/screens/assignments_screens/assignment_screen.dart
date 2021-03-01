@@ -22,9 +22,17 @@ class AssignmentScreen extends StatefulWidget {
 class _AssignmentScreenState extends State<AssignmentScreen> {
   FirebaseFirestore _firestore;
   List<ListTile> assignmentCards=[];
-  Widget buildTile(String title,String date,String time,String url){
+  bool attempt;
+  Widget buildStudentTile(String title,String date,String time,String url,String id){
+    lockQuiz(id, date);
     return ListTile(
-      title: AssignmentCard(title,date,time,url),
+      title: AssignmentCard('Student',title,date,time,url,id,attempt),
+    );
+  }
+  Widget buildTeacherTile(String title,String date,String time,String url,String id){
+
+    return ListTile(
+      title: AssignmentCard('Teacher',title,date,time,url,id,false),
     );
   }
   @override
@@ -43,25 +51,34 @@ class _AssignmentScreenState extends State<AssignmentScreen> {
             child: ListView(
               children: [
                 widget.participantStatus=='Teacher'?
-                LayoutBuilder(
-                  builder: (context,constraints)
-                  {
-                    List<ListTile> teacherCards=[];
-                    for(int i= 0;i<=1;i++)
+                StreamBuilder<QuerySnapshot>(
+                  stream: _firestore.collection('assignments').doc(Provider.of<UserDetails>(context,listen: false).currentClassCode).collection('assignment').snapshots(),
+                  builder: (context,snapshot){
+                    if(!snapshot.hasData)
                     {
-                      var a = ListTile(
-                        title: QuizCard('Students list','Date','Time','Mcqs','Show Participants',"",""),
+                      return Center(
+                        child: CircularProgressIndicator(backgroundColor: Colors.indigo,),
                       );
-                      teacherCards.add(a);
                     }
-                    if(constraints.maxWidth<839)
-                    {
-                      return SmallAssignmentScreen(teacherCards);
+                    if(snapshot.hasError){
+                      return Center(
+                        child: Text('Error while loading assignments'),
+                      );
                     }
-                    else
-                    {
-                      return LargeAssignmentScreen(teacherCards);
+                    final assDetails=snapshot.data.docs;
+                    for(var ad in assDetails){
+                      String title=ad.data()['title'];
+                      String date=ad.data()['date'];
+                      String time=ad.data()['time'];
+                      String url=ad.data()['imageUrl'];
+                      assignmentCards.add(buildTeacherTile(title,date,time,url,ad.id));
                     }
+
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children:assignmentCards,
+                    );
                   },
                 ):
                 // QuizCard('Students list attempted assignmnets','Date','Time','Mcqs','Show Participants',"",""),
@@ -85,7 +102,7 @@ class _AssignmentScreenState extends State<AssignmentScreen> {
                       String date=ad.data()['date'];
                       String time=ad.data()['time'];
                       String url=ad.data()['imageUrl'];
-                      assignmentCards.add(buildTile(title,date,time,url));
+                      assignmentCards.add(buildStudentTile(title,date,time,url,ad.id));
                     }
 
                     return LayoutBuilder(
@@ -141,5 +158,44 @@ class _AssignmentScreenState extends State<AssignmentScreen> {
 
         ]
     );
+  }
+  void lockQuiz(String quizDocID, String dueDate) async {
+    bool check = await checkAttempt(quizDocID, dueDate);
+    attempt = check;
+  }
+
+  Future<bool> checkAttempt(String quizDocID, String dueDate) async {
+    String id;
+    try {
+      DateTime due = DateTime.parse(dueDate);
+      final check = due.compareTo(DateTime.now());
+      if (check >= 0) {
+        return true;
+      } else {
+        final user = await _firestore
+            .collection('assignments')
+            .doc(Provider.of<UserDetails>(context, listen: false)
+            .currentClassCode)
+            .collection('assignment')
+            .doc(quizDocID)
+            .collection('attemptedBy')
+            .where('name',
+            isEqualTo:
+            Provider.of<UserDetails>(context, listen: false).username)
+            .get();
+        for (var data in user.docs) {
+          id = data.id;
+        }
+        if (id != null) {
+          print('exist');
+          return true;
+        } else {
+          print('not exist');
+          return false;
+        }
+      }
+    } catch (e) {
+      return false;
+    }
   }
 }

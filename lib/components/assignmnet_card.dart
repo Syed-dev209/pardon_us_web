@@ -1,14 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:pardon_us/components/alertBox.dart';
+import 'package:pardon_us/screens/assignments_screens/studentAssignmentAttemptList.dart';
 import 'package:pardon_us/screens/assignments_screens/student_assignment_upload.dart';
 import 'package:pardon_us/animation_transition/fade_transition.dart';
 import 'package:pardon_us/models/assignmentModel.dart';
 
 
 class AssignmentCard extends StatefulWidget {
-  String assignmentTitle,dueTime,dueDate;
+  String assignmentTitle,dueTime,dueDate,docId;
   String participantStatus,fileUrl;
-  AssignmentCard(this.assignmentTitle,this.dueDate,this.dueTime,this.fileUrl);
+  bool lock;
+
+  AssignmentCard(this.participantStatus,this.assignmentTitle,this.dueDate,this.dueTime,this.fileUrl,this.docId,this.lock);
   @override
   _AssignmentCardState createState() => _AssignmentCardState();
 }
@@ -104,10 +108,32 @@ class _AssignmentCardState extends State<AssignmentCard> {
         ),
       ),
       onTap: (){
-        assignmentModel=AssignmentModel();
-        assignmentModel.setAssignmentDetails(title:widget.assignmentTitle,time: widget.dueTime,date:widget.dueDate,fileUrl:widget.fileUrl);
-        Navigator.push(context, FadeRoute(page: StudentUploadAssignment(assDetails: assignmentModel,)));
-
+        AlertBoxes _alert= AlertBoxes();
+        DateTime dueDate= DateTime.parse(widget.dueDate);
+        int checkLock= dueDate.compareTo(DateTime.now());
+        print(widget.participantStatus);
+        if(widget.participantStatus=='Student') {
+          if (widget.lock) {
+            print(widget.docId);
+            assignmentModel = AssignmentModel();
+            assignmentModel.setAssignmentDetails(title: widget.assignmentTitle,
+                time: widget.dueTime,
+                date: widget.dueDate,
+                fileUrl: widget.fileUrl,
+                docId: widget.docId);
+            Navigator.push(context, FadeRoute(
+                page: StudentUploadAssignment(assDetails: assignmentModel,)));
+          }
+          else {
+            _alert.simpleAlertBox(context, Text('Assignment Locked'), Text(
+                'Either you have attempted the assignment or due time is over.'), () {
+              Navigator.pop(context);
+            });
+          }
+        }
+        else{
+          Navigator.push(context, MaterialPageRoute(builder: (context)=>StudentAssignmentAttemptList(assDocId: widget.docId,)));
+        }
       },
     );
   }
