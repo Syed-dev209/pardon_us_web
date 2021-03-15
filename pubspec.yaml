@@ -37,6 +37,7 @@ dependencies:
   cloud_firestore: ^0.14.3
   mime_type: ^0.3.2
   firebase: ^7.3.2
+  agora_rtc_engine: ^3.2.1
 
 dev_dependencies:
   flutter_test:
