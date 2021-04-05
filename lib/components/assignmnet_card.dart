@@ -1,10 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pardon_us/components/alertBox.dart';
+import 'package:pardon_us/models/userDeatils.dart';
 import 'package:pardon_us/screens/assignments_screens/studentAssignmentAttemptList.dart';
 import 'package:pardon_us/screens/assignments_screens/student_assignment_upload.dart';
 import 'package:pardon_us/animation_transition/fade_transition.dart';
 import 'package:pardon_us/models/assignmentModel.dart';
+import 'package:provider/provider.dart';
 
 
 class AssignmentCard extends StatefulWidget {
@@ -20,6 +23,37 @@ class AssignmentCard extends StatefulWidget {
 class _AssignmentCardState extends State<AssignmentCard> {
   MediaQueryData queryData;
   AssignmentModel assignmentModel;
+  String marksObtained='0';
+  FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  getStudentMarks() async {
+    final user = await _firestore
+        .collection('assignments')
+        .doc(Provider.of<UserDetails>(context, listen: false).currentClassCode)
+        .collection('assignment')
+        .doc(widget.docId)
+        .collection('attemptedBy')
+        .where('name',
+        isEqualTo:
+        Provider.of<UserDetails>(context, listen: false).username)
+        .get();
+    for (var data in user.docs) {
+      if (data.id != null) {
+        marksObtained = data.data()['marksObtained'];
+      } else {
+        break;
+      }
+    }
+  }
+  @override
+  void initState() {
+    // TODO: implement initState
+    if(widget.participantStatus=='Student')
+    {
+      getStudentMarks();
+    }
+    super.initState();
+  }
   @override
   Widget build(BuildContext context) {
     queryData=MediaQuery.of(context);
@@ -36,74 +70,63 @@ class _AssignmentCardState extends State<AssignmentCard> {
             borderRadius: BorderRadius.circular(10.0),
 
           ),
-          child: Padding(
-            padding: EdgeInsets.all(9.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: CircleAvatar(
-                    backgroundColor: Colors.blueAccent,
-                    radius:40.0,
-                  ),
+          child: ListTile(
+              leading: CircleAvatar(
+                backgroundImage: AssetImage('images/assignmentCard.jpg'),
+                radius: 40.0,
+              ),
+              title: Text(
+                widget.assignmentTitle,
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 23.0,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 2.0,
                 ),
-                Expanded(
-                  flex: 4,
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 20.0,top: 10.0),
-                    child: Column(
-                      //direction: Axis.vertical,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: SizedBox(
-                            width: 200.0,
-                            child: Text(widget.assignmentTitle,
-                              style: TextStyle(
-                                color: Colors.black54,
-                                fontSize: 25.0,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2.0,
-                              ),
-                              overflow: TextOverflow.fade,
-                              softWrap: false,
-                              maxLines: 1
-                              ,),
-                          ),
-
-                        ),
-                        SizedBox(
-                          height: 10.0,
-                          width: 200.0,
-                          child: Divider(color: Colors.black26,),
-                        ),
-
-                        Expanded(
-                          child: Text(widget.dueDate,style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 15.0,
-                            fontWeight: FontWeight.bold,
-
-                          ),),
-                        ),
-                        Expanded(
-                          child: Text(widget.dueTime,
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 15.0,
-                              fontWeight: FontWeight.bold,
-
-                            ),),
-                        ),
-
-                      ],
+                overflow: TextOverflow.fade,
+                softWrap: false,
+                maxLines: 1,
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 10.0,),
+                  Text(
+                    DateTime.parse(widget.dueDate)
+                        .toLocal()
+                        .toString()
+                        .split(' ')[0],
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                )
-
-
-              ],
-            ),
+                  Text(
+                    widget.dueTime,
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              trailing: widget.participantStatus=='Student'? Column(
+                children: [
+                  Text('Marks\nObtained',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 14.0,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  Text('$marksObtained',style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 16.0
+                  ),)
+                ],
+              ):Text(' ')
           ),
         ),
       ),

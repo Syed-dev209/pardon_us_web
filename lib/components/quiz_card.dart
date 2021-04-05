@@ -26,6 +26,7 @@ class QuizCard extends StatefulWidget {
 class _QuizCardState extends State<QuizCard> {
   MediaQueryData queryData;
   bool attempt=false;
+  String marksObtained='0';
   FirebaseFirestore _firestore=FirebaseFirestore.instance;
   void lockQuiz(String quizDocID, String dueDate) async {
     bool check = await checkAttempt(quizDocID, dueDate);
@@ -33,6 +34,25 @@ class _QuizCardState extends State<QuizCard> {
     setState(() {
       attempt=check;
     });
+  }
+  getStudentMarks() async {
+    final user = await _firestore
+        .collection('quizes')
+        .doc(Provider.of<UserDetails>(context, listen: false).currentClassCode)
+        .collection('quiz')
+        .doc(widget.docId)
+        .collection('attemptedBy')
+        .where('name',
+        isEqualTo:
+        Provider.of<UserDetails>(context, listen: false).username)
+        .get();
+    for (var data in user.docs) {
+      if (data.id != null) {
+        marksObtained = data.data()['marksObtained'];
+      } else {
+        break;
+      }
+    }
   }
 
   Future<bool> checkAttempt(String quizDocID, String dueDate) async {
@@ -88,72 +108,64 @@ class _QuizCardState extends State<QuizCard> {
             borderRadius: BorderRadius.circular(10.0),
 
           ),
-          child: Padding(
-            padding: EdgeInsets.all(9.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: CircleAvatar(
-                    backgroundColor: Colors.blueAccent,
-                    radius:40.0,
-                  ),
+          child: ListTile(
+              leading:CircleAvatar(
+                backgroundImage: AssetImage('images./quizCard.jpg'),
+                radius: 40.0,
+              ),
+              title: Text(
+                widget.quizTitle,
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 23.0,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 2.0,
                 ),
-                Expanded(
-                  flex: 4,
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 20.0,top: 10.0),
-                    child: Column(
-                      //direction: Axis.vertical,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(widget.quizTitle,
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: 25.0,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2.0,
-                          ),
-                          overflow: TextOverflow.fade,
-                            softWrap: false,
-                            maxLines: 1
-                            ,),
-
-                        ),
-                        SizedBox(
-                          height: 10.0,
-                          width: 200.0,
-                          child: Divider(color: Colors.black26,),
-                        ),
-
-                        Expanded(
-                          child: Text(widget.dueDate,style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 15.0,
-                            fontWeight: FontWeight.bold,
-
-                          ),),
-                        ),
-                        Expanded(
-                          child: Text(widget.dueTime,
-                            style: TextStyle(
-                            color: Colors.red,
-                            fontSize: 15.0,
-                            fontWeight: FontWeight.bold,
-
-                          ),),
-                        ),
-
-                      ],
+                overflow: TextOverflow.fade,
+                softWrap: false,
+                maxLines: 1,
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 10.0,),
+                  Text(
+                    DateTime.parse(widget.dueDate)
+                        .toLocal()
+                        .toString()
+                        .split(' ')[0],
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                )
-
-
-              ],
-            ),
-          ),
+                  Text(
+                    widget.dueTime,
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              trailing: widget.participantStatus=='Student'? Column(
+                children: [
+                  Text('Marks\nObtained',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 14.0,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  Text('$marksObtained',style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 16.0
+                  ),)
+                ],
+              ):Text(' ')
+          )
         ),
       ),
       onTap: (){
