@@ -19,45 +19,49 @@ class LargePage extends StatefulWidget {
 }
 
 class _LargePageState extends State<LargePage> {
-  GlobalKey<FormState> _loginKey=GlobalKey<FormState>();
+  GlobalKey<FormState> _loginKey = GlobalKey<FormState>();
   MediaQueryData queryData;
   ScaleRoute route;
-  bool showSpinner=false,isLoggedIn=false;
+  bool showSpinner = false, isLoggedIn = false;
   LogInMethods _login;
   final emailController = TextEditingController();
-  final passController= TextEditingController();
+  final passController = TextEditingController();
   FirebaseAuth _auth = FirebaseAuth.instance;
   FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  String email,name,imageURl,uid;
+  String email, name, imageURl, uid;
 
-  Future<void> getUser(String checkEmail)async {
-    final user = await _firestore.collection('user').where('email',isEqualTo: checkEmail).get();
-    for(var data in user.docs)
-    {
-      email=data.data()['email'];
-      name=data.data()['name'];
-      imageURl=data.data()['profile'];
-      uid=data.id;
+  Future<void> getUser(String checkEmail) async {
+    final user = await _firestore
+        .collection('user')
+        .where('email', isEqualTo: checkEmail)
+        .get();
+    for (var data in user.docs) {
+      email = data.data()['email'];
+      name = data.data()['name'];
+      imageURl = data.data()['profile'];
+      uid = data.id;
     }
-    print('at log in page:- '+email+name+imageURl+uid);
+    print('at log in page:- ' + email + name + imageURl + uid);
   }
+
   @override
   void dispose() {
     emailController.clear();
     passController.clear();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 2,sigmaY: 2),
+      filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
       child: Center(
         child: Form(
           key: _loginKey,
           child: Container(
             height: 400.0,
             width: 650.0,
-            padding: EdgeInsets.symmetric(horizontal:20.0,vertical: 20.0),
+            padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
             child: Card(
               color: Colors.white,
               elevation: 7.0,
@@ -69,16 +73,15 @@ class _LargePageState extends State<LargePage> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
-                      child:Container(
-                        decoration: BoxDecoration(
+                        child: Container(
+                      decoration: BoxDecoration(
                           image: DecorationImage(
-                            image:  AssetImage('images/logoNew.png'),
-                            fit: BoxFit.fitHeight
-                          )
-                        ),
-                      )
+                              image: AssetImage('images/logoNew.png'),
+                              fit: BoxFit.fitHeight)),
+                    )),
+                    SizedBox(
+                      width: 10.0,
                     ),
-                    SizedBox(width: 10.0,),
                     Expanded(
                       flex: 2,
                       child: Column(
@@ -108,7 +111,8 @@ class _LargePageState extends State<LargePage> {
                               validator: MultiValidator([
                                 RequiredValidator(errorText: 'Required'),
                                 MinLengthValidator(6, errorText: 'Too small'),
-                                MaxLengthValidator(10, errorText: 'Password too long')
+                                MaxLengthValidator(10,
+                                    errorText: 'Password too long')
                               ]),
                               obscureText: true,
                               textCapitalization: TextCapitalization.words,
@@ -132,71 +136,89 @@ class _LargePageState extends State<LargePage> {
                               children: [
                                 RaisedButton(
                                   padding: EdgeInsets.symmetric(
-                                      vertical: 14.0,horizontal: 40.0),
+                                      vertical: 14.0, horizontal: 40.0),
                                   child: Center(
                                     child: Text(
                                       'Log In',
-                                      style: TextStyle(fontSize: 20.0, color: Colors.white),
+                                      style: TextStyle(
+                                          fontSize: 20.0, color: Colors.white),
                                     ),
                                   ),
                                   elevation: 5.0,
                                   color: Colors.blue,
                                   splashColor: Colors.grey,
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(30.0)),
-                                  onPressed: () async{
-                                    InternetConnectivity checkNet=new InternetConnectivity();
-                                    try{
-                                      bool net=await checkNet.checkConnection();
-                                      if(!net)
-                                      {
-                                        _onBasicAlertPressed(context, 'No Internet Connection', 'Please check your connection before login');
+                                      borderRadius:
+                                          BorderRadius.circular(30.0)),
+                                  onPressed: () async {
+                                    InternetConnectivity checkNet =
+                                        new InternetConnectivity();
+                                    try {
+                                      bool net =
+                                          await checkNet.checkConnection();
+                                      if (!net) {
+                                        _onBasicAlertPressed(
+                                            context,
+                                            'No Internet Connection',
+                                            'Please check your connection before login');
                                       }
-                                      print('email=${emailController.text},pass=${passController.text}');
+                                      print(
+                                          'email=${emailController.text},pass=${passController.text}');
                                       if (_loginKey.currentState.validate()) {
                                         setState(() {
                                           showSpinner = true;
                                         });
-                                        final user = await _auth.signInWithEmailAndPassword(email: emailController.text, password: passController.text);
-                                        if(user!=null){
-                                          await getUser(emailController.text);
-                                          Provider.of<UserDetails>(context,listen: false).setUser(name, email, uid, imageURl);
-                                          print(email+',,,'+name);
-                                          print('logged in');
-                                          Navigator.push(context, ScaleRoute(page: Start()));
-                                        }
+                                        await _auth.signInWithEmailAndPassword(
+                                            email: emailController.text,
+                                            password: passController.text);
+
+                                        await getUser(emailController.text);
+                                        Provider.of<UserDetails>(context,
+                                                listen: false)
+                                            .setUser(
+                                                name, email, uid, imageURl);
+                                        print(email + ',,,' + name);
+                                        print('logged in');
+                                        Navigator.push(
+                                            context, ScaleRoute(page: Start()));
                                         setState(() {
-                                          showSpinner=false;
+                                          showSpinner = false;
                                         });
                                       }
-                                    }
-                                    catch(e){
-                                      _onBasicAlertPressed(context, 'ERROR', 'Please Register yourself before login');
+                                    } catch (e) {
+                                      print(e);
+                                      _onBasicAlertPressed(context, 'ERROR',
+                                          'Please Register yourself before login');
                                       setState(() {
-                                        showSpinner=false;
+                                        showSpinner = false;
                                       });
                                       print(e);
                                     }
                                     //Navigator.push(context, ScaleRoute(page:Start()));
                                   },
                                 ),
-                                SizedBox(width: 9.0,),
+                                SizedBox(
+                                  width: 9.0,
+                                ),
                                 RaisedButton(
                                   padding: EdgeInsets.symmetric(
                                       vertical: 13.0, horizontal: 40.0),
                                   child: Center(
                                     child: Text(
                                       'Register',
-                                      style: TextStyle(fontSize: 20.0, color: Colors.white),
+                                      style: TextStyle(
+                                          fontSize: 20.0, color: Colors.white),
                                     ),
                                   ),
                                   elevation: 5.0,
                                   color: Colors.blue,
                                   splashColor: Colors.grey,
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(50.0)),
+                                      borderRadius:
+                                          BorderRadius.circular(50.0)),
                                   onPressed: () {
-                                    Navigator.push(context, ScaleRoute(page:WebRegisterUser()));
+                                    Navigator.push(context,
+                                        ScaleRoute(page: WebRegisterUser()));
                                   },
                                 ),
                               ],
@@ -206,18 +228,24 @@ class _LargePageState extends State<LargePage> {
                             height: 30.0,
                           ),
                           Padding(
-                            padding: EdgeInsets.symmetric(horizontal:20.0),
+                            padding: EdgeInsets.symmetric(horizontal: 20.0),
                             child: RaisedButton(
-                              padding: EdgeInsets.symmetric(
-                                  vertical: 14.0),
+                              padding: EdgeInsets.symmetric(vertical: 14.0),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Image.asset('images/google-logo.png',height:25.0,width: 20.0,),
-                                  SizedBox(width:9.0,),
+                                  Image.asset(
+                                    'images/google-logo.png',
+                                    height: 25.0,
+                                    width: 20.0,
+                                  ),
+                                  SizedBox(
+                                    width: 9.0,
+                                  ),
                                   Text(
                                     'Log in with Google',
-                                    style: TextStyle(fontSize: 20.0, color: Colors.white),
+                                    style: TextStyle(
+                                        fontSize: 20.0, color: Colors.white),
                                   ),
                                 ],
                               ),
@@ -226,13 +254,16 @@ class _LargePageState extends State<LargePage> {
                               splashColor: Colors.grey,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(50.0)),
-                              onPressed: () async{
-                                InternetConnectivity checkNet=new InternetConnectivity();
+                              onPressed: () async {
+                                InternetConnectivity checkNet =
+                                    new InternetConnectivity();
                                 try {
-                                  bool net=await checkNet.checkConnection();
-                                  if(!net)
-                                  {
-                                    _onBasicAlertPressed(context, 'No Internet Connection', 'Please check your connection before login');
+                                  bool net = await checkNet.checkConnection();
+                                  if (!net) {
+                                    _onBasicAlertPressed(
+                                        context,
+                                        'No Internet Connection',
+                                        'Please check your connection before login');
                                   }
                                   setState(() {
                                     showSpinner = true;
@@ -240,25 +271,28 @@ class _LargePageState extends State<LargePage> {
                                   _login = new LogInMethods();
                                   String check = await _login.signinGoogle();
                                   print(check);
-                                  if(check!='false'){
+                                  if (check != 'false') {
                                     await getUser(check);
-                                    Provider.of<UserDetails>(context,listen: false).setUser(name, email, uid, imageURl);
-                                    Navigator.push(context, ScaleRoute(page:Start()));
+                                    Provider.of<UserDetails>(context,
+                                            listen: false)
+                                        .setUser(name, email, uid, imageURl);
+                                    Navigator.push(
+                                        context, ScaleRoute(page: Start()));
                                     setState(() {
-                                      showSpinner=false;
+                                      showSpinner = false;
                                     });
-                                  }
-                                  else{
-                                    _onBasicAlertPressed(context, 'Error','Please register yourself before log in');
+                                  } else {
+                                    _onBasicAlertPressed(context, 'Error',
+                                        'Please register yourself before log in');
                                   }
                                   setState(() {
                                     showSpinner = false;
                                   });
-                                }
-                                catch(e){
+                                } catch (e) {
                                   setState(() {
-                                    _onBasicAlertPressed(context, 'ERROR', 'Something went wrong please try again later.');
-                                    showSpinner=false;
+                                    _onBasicAlertPressed(context, 'ERROR',
+                                        'Something went wrong please try again later.');
+                                    showSpinner = false;
                                   });
                                 }
                               },
@@ -269,7 +303,8 @@ class _LargePageState extends State<LargePage> {
                     ),
                   ],
                 ),
-              ),),
+              ),
+            ),
           ),
         ),
       ),
@@ -277,12 +312,8 @@ class _LargePageState extends State<LargePage> {
   }
 }
 
-_onBasicAlertPressed(context,String title,String description) {
-  Alert(
-      context: context,
-      title: title,
-      desc: description)
-      .show();
+_onBasicAlertPressed(context, String title, String description) {
+  Alert(context: context, title: title, desc: description).show();
 }
 // Padding(
 // padding: EdgeInsets.only(top: 20.0),

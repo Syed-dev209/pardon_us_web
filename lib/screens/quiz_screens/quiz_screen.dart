@@ -11,7 +11,6 @@ import 'package:pardon_us/screens/webQuizScreens/smallQuizScreen.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
 class QuizScreen extends StatefulWidget {
   String participantStatus;
   QuizScreen({this.participantStatus});
@@ -21,9 +20,8 @@ class QuizScreen extends StatefulWidget {
 
 class _QuizScreenState extends State<QuizScreen> {
   FirebaseFirestore _firestore;
-  List<ListTile> quizcards=[];
+  List<ListTile> quizcards = [];
   bool attempt;
-
 
   Widget buildStudentTile(String quizTitle, String duedate, String dueTime,
       String type, String docId, String imgUrl) {
@@ -34,6 +32,7 @@ class _QuizScreenState extends State<QuizScreen> {
           widget.participantStatus, docId, imgUrl, attempt),
     );
   }
+
   Widget buildTeacherTile(String quizTitle, String duedate, String dueTime,
       String type, String docId, String imgUrl) {
     lockQuiz(docId, duedate);
@@ -42,63 +41,83 @@ class _QuizScreenState extends State<QuizScreen> {
           widget.participantStatus, docId, imgUrl, false),
     );
   }
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    _firestore= FirebaseFirestore.instance;
+    _firestore = FirebaseFirestore.instance;
   }
+
   @override
   void dispose() {
     // TODO: implement dispose
     super.dispose();
     quizcards.clear();
   }
+
   @override
   Widget build(BuildContext context) {
     print(widget.participantStatus);
-    return  Stack(
-        children:[
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: ListView(
-              children: [
-                widget.participantStatus=='Teacher'?
-                StreamBuilder(
-                  stream: _firestore
-                      .collection('quizes')
-                      .doc(Provider.of<UserDetails>(context, listen: false)
-                      .currentClassCode)
-                      .collection('quiz')
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return Center(
-                        child: CircularProgressIndicator(
-                          backgroundColor: Colors.indigo,
-                        ),
+    return Stack(children: [
+      Padding(
+        padding: EdgeInsets.all(8.0),
+        child: ListView(
+          children: [
+            widget.participantStatus == 'Teacher'
+                ? StreamBuilder(
+                    stream: _firestore
+                        .collection('quizes')
+                        .doc(Provider.of<UserDetails>(context, listen: false)
+                            .currentClassCode)
+                        .collection('quiz')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return Center(
+                          child: CircularProgressIndicator(
+                            backgroundColor: Colors.indigo,
+                          ),
+                        );
+                      }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text('Server error'),
+                        );
+                      }
+                      final quizDetails = snapshot.data.docs;
+                      for (var qd in quizDetails) {
+                        quizcards.add(buildTeacherTile(
+                            qd.data()['title'],
+                            qd.data()['date'],
+                            qd.data()['time'],
+                            qd.data()['type'],
+                            qd.id,
+                            qd.data()['imageUrl']));
+                      }
+                      return Column(
+                        children: quizcards.isNotEmpty
+                            ? quizcards
+                            : [
+                                Container(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.7,
+                                  width: MediaQuery.of(context).size.width,
+                                  child: Center(
+                                    child: Text(
+                                      'You have\'nt created any Quiz yet.',
+                                      style: TextStyle(
+                                          fontSize: 30.0,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.indigo[100]),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                )
+                              ],
                       );
-                    }
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Text('Server error'),
-                      );
-                    }
-                    final quizDetails = snapshot.data.docs;
-                    for (var qd in quizDetails) {
-                      quizcards.add(buildTeacherTile(
-                          qd.data()['title'],
-                          qd.data()['date'],
-                          qd.data()['time'],
-                          qd.data()['type'],
-                          qd.id,
-                          qd.data()['imageUrl']));
-                    }
-                    return Column(
-                      children: quizcards,
-                    );
-                  },
-                )
+                    },
+                  )
                 // Column(
                 //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 //   crossAxisAlignment: CrossAxisAlignment.end,
@@ -108,74 +127,97 @@ class _QuizScreenState extends State<QuizScreen> {
                 //   ],
                 // ):
                 //For Students
-               :StreamBuilder<QuerySnapshot>(
-                 stream: _firestore.collection('quizes').doc(Provider.of<UserDetails>(context,listen: false).currentClassCode).collection('quiz').snapshots(),
-                 builder: (context,snapshot){
-                   if(!snapshot.hasData){
-                     return Center(
-                       child: CircularProgressIndicator(
-                         backgroundColor: Colors.indigo,
-                       ),
-                     );
-                   }
-                   if(snapshot.hasError)
-                     {
-                       return Center(
-                         child: Text('Server error'),
-                       );
-                     }
-                   final quizDetails = snapshot.data.docs;
-                   for(var qd in quizDetails)
-                   {
-                     quizcards.add(buildStudentTile(qd.data()['title'], qd.data()['date'], qd.data()['time'], qd.data()['type'],qd.id,qd.data()['imageUrl']));
-                   }
+                : StreamBuilder<QuerySnapshot>(
+                    stream: _firestore
+                        .collection('quizes')
+                        .doc(Provider.of<UserDetails>(context, listen: false)
+                            .currentClassCode)
+                        .collection('quiz')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return Center(
+                          child: CircularProgressIndicator(
+                            backgroundColor: Colors.indigo,
+                          ),
+                        );
+                      }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text('Server error'),
+                        );
+                      }
+                      final quizDetails = snapshot.data.docs;
+                      for (var qd in quizDetails) {
+                        quizcards.add(buildStudentTile(
+                            qd.data()['title'],
+                            qd.data()['date'],
+                            qd.data()['time'],
+                            qd.data()['type'],
+                            qd.id,
+                            qd.data()['imageUrl']));
+                      }
 
-                   return LayoutBuilder(
-                     builder: (context,constraints)
-                     {
-                       if(constraints.maxWidth<839)
-                         {
-                           return SmallQuizScreen(quizcards);
-                         }
-                       else{
-                         return LargeQuizScreen(quizcards);
-                       }
-                     },
-                   );
-                 },
-               )
-
-              ],
-            ),
-          ),
-
-          widget.participantStatus=='Teacher'?
-          Padding(
-            padding: EdgeInsets.only(bottom: 30.0,right: 28.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Align(
-                  alignment: FractionalOffset.bottomRight,
-                  child:  FoldableOption(
-                    icon1: Icons.create,
-                    onTap1: (){
-                      Navigator.push(context, FadeRoute(page: CreateMcqs()));
+                      return quizcards.isNotEmpty
+                          ? LayoutBuilder(
+                              builder: (context, constraints) {
+                                if (constraints.maxWidth < 839) {
+                                  return SmallQuizScreen(quizcards);
+                                } else {
+                                  return LargeQuizScreen(quizcards);
+                                }
+                              },
+                            )
+                          : Container(
+                              height: MediaQuery.of(context).size.height * 0.7,
+                              width: MediaQuery.of(context).size.width,
+                              child: Center(
+                                child: Text(
+                                  'Your Instructor has\'nt uploaded any Quiz yet',
+                                  style: TextStyle(
+                                      fontSize: 40.0,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.indigo[100]),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            );
                     },
-                    icon2: Icons.file_upload,
-                    onTap2: (){
-                      Navigator.push(context, FadeRoute(page:TeacherUploadQuiz(participantStatus: widget.participantStatus,)));
-                    },
-
+                  )
+          ],
+        ),
+      ),
+      widget.participantStatus == 'Teacher'
+          ? Padding(
+              padding: EdgeInsets.only(bottom: 30.0, right: 28.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Align(
+                    alignment: FractionalOffset.bottomRight,
+                    child: FoldableOption(
+                      icon1: Icons.create,
+                      onTap1: () {
+                        Navigator.push(context, FadeRoute(page: CreateMcqs()));
+                      },
+                      icon2: Icons.file_upload,
+                      onTap2: () {
+                        Navigator.push(
+                            context,
+                            FadeRoute(
+                                page: TeacherUploadQuiz(
+                              participantStatus: widget.participantStatus,
+                            )));
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ): Container()
-
-        ]
-    );
+                ],
+              ),
+            )
+          : Container()
+    ]);
   }
+
   void lockQuiz(String quizDocID, String dueDate) async {
     bool check = await checkAttempt(quizDocID, dueDate);
     print(check);
@@ -193,13 +235,13 @@ class _QuizScreenState extends State<QuizScreen> {
         final user = await _firestore
             .collection('quizes')
             .doc(Provider.of<UserDetails>(context, listen: false)
-            .currentClassCode)
+                .currentClassCode)
             .collection('quiz')
             .doc(quizDocID)
             .collection('attemptedBy')
             .where('name',
-            isEqualTo:
-            Provider.of<UserDetails>(context, listen: false).username)
+                isEqualTo:
+                    Provider.of<UserDetails>(context, listen: false).username)
             .get();
         for (var data in user.docs) {
           id = data.id;

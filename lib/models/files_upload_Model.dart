@@ -61,19 +61,19 @@ class FilesUpload{
       return false;
     }
   }
-  Future<String> uploadFile(PlatformFile _file,String classCode) async {
-  // File ccc= _file as File;
-    String uploadedFileUrl;
-    StorageReference storageReference = FirebaseStorage.instance
-        .ref()
-        .child('quizFiles/${_file.name}');
-    StorageUploadTask uploadTask = storageReference.putFile(io.File(_file.path));
-    StorageTaskSnapshot cuyz= await uploadTask.onComplete;
-    print('File Uploaded');
-    uploadedFileUrl= await cuyz.ref.getDownloadURL();
-    print('File URl :- $uploadedFileUrl');
-    return uploadedFileUrl;
-  }
+  // Future<String> uploadFile(PlatformFile _file,String classCode) async {
+  // // File ccc= _file as File;
+  //   String uploadedFileUrl;
+  //   StorageReference storageReference = FirebaseStorage.instance
+  //       .ref()
+  //       .child('quizFiles/${_file.name}');
+  //   StorageUploadTask uploadTask = storageReference.putFile(io.File(_file.path));
+  //   StorageTaskSnapshot cuyz= await uploadTask.onComplete;
+  //   print('File Uploaded');
+  //   uploadedFileUrl= await cuyz.ref.getDownloadURL();
+  //   print('File URl :- $uploadedFileUrl');
+  //   return uploadedFileUrl;
+  // }
 
   Future<String> uploadFileWeb(PlatformFile _file,String classCode,String ref) async {
     String uploadedFileUrl;

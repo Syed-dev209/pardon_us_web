@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,13 +10,13 @@ import 'package:pardon_us/animation_transition/fade_transition.dart';
 import 'package:pardon_us/models/assignmentModel.dart';
 import 'package:provider/provider.dart';
 
-
 class AssignmentCard extends StatefulWidget {
-  String assignmentTitle,dueTime,dueDate,docId;
-  String participantStatus,fileUrl;
+  String assignmentTitle, dueTime, dueDate, docId;
+  String participantStatus, fileUrl;
   bool lock;
 
-  AssignmentCard(this.participantStatus,this.assignmentTitle,this.dueDate,this.dueTime,this.fileUrl,this.docId,this.lock);
+  AssignmentCard(this.participantStatus, this.assignmentTitle, this.dueDate,
+      this.dueTime, this.fileUrl, this.docId, this.lock);
   @override
   _AssignmentCardState createState() => _AssignmentCardState();
 }
@@ -23,7 +24,7 @@ class AssignmentCard extends StatefulWidget {
 class _AssignmentCardState extends State<AssignmentCard> {
   MediaQueryData queryData;
   AssignmentModel assignmentModel;
-  String marksObtained='0';
+  String marksObtained = '0';
   FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   getStudentMarks() async {
@@ -34,41 +35,42 @@ class _AssignmentCardState extends State<AssignmentCard> {
         .doc(widget.docId)
         .collection('attemptedBy')
         .where('name',
-        isEqualTo:
-        Provider.of<UserDetails>(context, listen: false).username)
+            isEqualTo:
+                Provider.of<UserDetails>(context, listen: false).username)
         .get();
     for (var data in user.docs) {
       if (data.id != null) {
-        marksObtained = data.data()['marksObtained'];
+        setState(() {
+          marksObtained = data.data()['marksObtained'];
+        });
       } else {
         break;
       }
     }
   }
+
   @override
   void initState() {
     // TODO: implement initState
-    if(widget.participantStatus=='Student')
-    {
+    if (widget.participantStatus == 'Student') {
       getStudentMarks();
     }
     super.initState();
   }
+
   @override
   Widget build(BuildContext context) {
-    queryData=MediaQuery.of(context);
+    queryData = MediaQuery.of(context);
     return GestureDetector(
       child: Card(
         elevation: 3.0,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10.0)
-        ),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
         child: Container(
           height: 150.0,
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10.0),
-
           ),
           child: ListTile(
               leading: CircleAvatar(
@@ -90,7 +92,9 @@ class _AssignmentCardState extends State<AssignmentCard> {
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 10.0,),
+                  SizedBox(
+                    height: 10.0,
+                  ),
                   Text(
                     DateTime.parse(widget.dueDate)
                         .toLocal()
@@ -112,50 +116,72 @@ class _AssignmentCardState extends State<AssignmentCard> {
                   ),
                 ],
               ),
-              trailing: widget.participantStatus=='Student'? Column(
-                children: [
-                  Text('Marks\nObtained',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontSize: 14.0,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  Text('$marksObtained',style: TextStyle(
-                      color: Colors.green,
-                      fontSize: 16.0
-                  ),)
-                ],
-              ):Text(' ')
-          ),
+              trailing: widget.participantStatus == 'Student'
+                  ? Column(
+                      children: [
+                        Expanded(
+                          child: AutoSizeText(
+                            'Marks\nObtained',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 14.0,
+                            ),
+                            textAlign: TextAlign.center,
+                            minFontSize: 6.0,
+                          ),
+                        ),
+                        Expanded(
+                          child: AutoSizeText(
+                            '$marksObtained',
+                            style:
+                                TextStyle(color: Colors.green, fontSize: 16.0),
+                            minFontSize: 7.0,
+                          ),
+                        )
+                      ],
+                    )
+                  : Text(' ')),
         ),
       ),
-      onTap: (){
-        AlertBoxes _alert= AlertBoxes();
-        DateTime dueDate= DateTime.parse(widget.dueDate);
-        int checkLock= dueDate.compareTo(DateTime.now());
+      onTap: () {
+        AlertBoxes _alert = AlertBoxes();
+        DateTime dueDate = DateTime.parse(widget.dueDate);
+        int checkLock = dueDate.compareTo(DateTime.now());
+        final time = TimeOfDay.now();
         print(widget.participantStatus);
-        if(widget.participantStatus=='Student') {
-          if (widget.lock) {
+        if (widget.participantStatus == 'Student') {
+          if (checkLock != 0 && time.toString() != widget.dueTime) {
             print(widget.docId);
             assignmentModel = AssignmentModel();
-            assignmentModel.setAssignmentDetails(title: widget.assignmentTitle,
+            assignmentModel.setAssignmentDetails(
+                title: widget.assignmentTitle,
                 time: widget.dueTime,
                 date: widget.dueDate,
                 fileUrl: widget.fileUrl,
                 docId: widget.docId);
-            Navigator.push(context, FadeRoute(
-                page: StudentUploadAssignment(assDetails: assignmentModel,)));
-          }
-          else {
-            _alert.simpleAlertBox(context, Text('Assignment Locked'), Text(
-                'Either you have attempted the assignment or due time is over.'), () {
+            Navigator.push(
+                context,
+                FadeRoute(
+                    page: StudentUploadAssignment(
+                  assDetails: assignmentModel,
+                )));
+          } else {
+            _alert.simpleAlertBox(
+                context,
+                Text('Assignment Locked'),
+                Text(
+                    'Either you have attempted the assignment or due time is over.'),
+                () {
               Navigator.pop(context);
             });
           }
-        }
-        else{
-          Navigator.push(context, MaterialPageRoute(builder: (context)=>StudentAssignmentAttemptList(assDocId: widget.docId,)));
+        } else {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => StudentAssignmentAttemptList(
+                        assDocId: widget.docId,
+                      )));
         }
       },
     );

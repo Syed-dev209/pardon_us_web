@@ -23,166 +23,182 @@ class _StartState extends State<Start> {
   ClassMethods obj = ClassMethods();
   FirebaseAuth _auth = FirebaseAuth.instance;
   String classCode;
-  String classTitle, classTeacher,classImage;
+  String classTitle, classTeacher, classImage;
   MediaQueryData _queryData;
 
-Widget buildListTile(String usnam,String code,String name,String teacher,String role,String img){
-  print('at start screen teacher'+teacher);
+  Widget buildListTile(String usnam, String code, String name, String teacher,
+      String role, String img) {
+    print('at start screen teacher' + teacher);
     return ListTile(
-          title: ClassCard(usnam,code,name,teacher,role,img),
-        );
-}
+      title: ClassCard(usnam, code, name, teacher, role, img),
+    );
+  }
 
- FirebaseFirestore firestore= FirebaseFirestore.instance;
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
   @override
   Widget build(BuildContext context) {
-    _queryData= MediaQuery.of(context);
-    userId=Provider.of<UserDetails>(context,listen: false).Userid;
-    print('at start screen uid='+userId);
+    _queryData = MediaQuery.of(context);
+    userId = Provider.of<UserDetails>(context, listen: false).Userid;
+    print('at start screen uid=' + userId);
     Future<bool> onWillPop() {
       return showDialog(
-        context: context,
-        builder: (context) => new AlertDialog(
-          title: new Text('Confirm Exit?',
-              style: new TextStyle(color: Colors.black, fontSize: 20.0)),
-          content: new Text(
-              'Are you sure you want to exit the app? Tap \'Yes\' to exit \'No\' to cancel.'),
-          actions: <Widget>[
-            new FlatButton(
-              onPressed: () {
-                // this line exits the app.
-                SystemChannels.platform
-                    .invokeMethod('SystemNavigator.pop');
-              },
-              child:
-              new Text('Yes', style: new TextStyle(fontSize: 18.0)),
+            context: context,
+            builder: (context) => new AlertDialog(
+              title: new Text('Confirm Exit?',
+                  style: new TextStyle(color: Colors.black, fontSize: 20.0)),
+              content: new Text(
+                  'Are you sure you want to exit the app? Tap \'Yes\' to exit \'No\' to cancel.'),
+              actions: <Widget>[
+                new FlatButton(
+                  onPressed: () {
+                    // this line exits the app.
+                    SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+                  },
+                  child: new Text('Yes', style: new TextStyle(fontSize: 18.0)),
+                ),
+                new FlatButton(
+                  onPressed: () =>
+                      Navigator.pop(context), // this line dismisses the dialog
+                  child: new Text('No', style: new TextStyle(fontSize: 18.0)),
+                )
+              ],
             ),
-            new FlatButton(
-              onPressed: () => Navigator.pop(context), // this line dismisses the dialog
-              child: new Text('No', style: new TextStyle(fontSize: 18.0)),
-            )
-          ],
-        ),
-      ) ??
+          ) ??
           false;
     }
+
     return WillPopScope(
       child: Scaffold(
         appBar: AppBar(
           title: Text('PARDON US'),
         ),
-         drawer:DrawerItem(),
+        drawer: DrawerItem(),
         body: SingleChildScrollView(
           child: SafeArea(
             child: Consumer<UserDetails>(
-              builder: (context,user,child){
-                print('in consumer'+user.Userid);
+              builder: (context, user, child) {
+                print('in consumer' + user.Userid);
                 return StreamBuilder(
-                  stream:firestore.collection('user').doc(user.Userid).collection('joinedClasses').snapshots(),
-                  builder:(context,snapshot){
-                    if(!snapshot.hasData){
+                  stream: firestore
+                      .collection('user')
+                      .doc(user.Userid)
+                      .collection('joinedClasses')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
                       return Center(
                         child: CircularProgressIndicator(
                           backgroundColor: Colors.indigo,
                         ),
                       );
-                    }
-                    else if(snapshot.hasError){
+                    } else if (snapshot.hasError) {
                       return Text('No classes to show');
                     }
                     final classData = snapshot.data.docs;
-                    List<ListTile> studentClasses=[];
-                    List<ListTile> myClasses=[];
-                    for(var cd in classData ) {
+                    List<ListTile> studentClasses = [];
+                    List<ListTile> myClasses = [];
+                    for (var cd in classData) {
                       classCode = cd.data()['classCode'];
-                      classTitle=cd.data()['title'];
-                      classTeacher=cd.data()['teacher'];
-                      classImage=cd.data()['imageURL'];
-                      if(classTeacher==user.username){
+                      classTitle = cd.data()['title'];
+                      classTeacher = cd.data()['teacher'];
+                      classImage = cd.data()['imageURL'];
+                      if (classTeacher == user.username) {
                         //I am the teacher
-                        myClasses.add(buildListTile(user.username,classCode,classTitle,classTeacher,'Teacher',classImage));
-                      }
-                      else{
-                        studentClasses.add(buildListTile(user.username,classCode,classTitle,classTeacher,'Student',classImage));
+                        myClasses.add(buildListTile(user.username, classCode,
+                            classTitle, classTeacher, 'Teacher', classImage));
+                      } else {
+                        studentClasses.add(buildListTile(
+                            user.username,
+                            classCode,
+                            classTitle,
+                            classTeacher,
+                            'Student',
+                            classImage));
                       }
                     }
                     return LayoutBuilder(
-                      builder: (context,constraints){
-                        if(constraints.maxWidth<839)
-                          {
-                            return SmallStartScreen(myClasses, studentClasses);
-                          }
-                        else{
-                          return LargeStartScreen(myClasses: myClasses,myCourses: studentClasses,);
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth < 839) {
+                          return SmallStartScreen(myClasses, studentClasses);
+                        } else {
+                          return LargeStartScreen(
+                            myClasses: myClasses,
+                            myCourses: studentClasses,
+                          );
                         }
                       },
                     );
-                  } ,
+                    // : Container(
+                    //     height: MediaQuery.of(context).size.height * 0.7,
+                    //     width: MediaQuery.of(context).size.width,
+                    //     child: Center(
+                    //       child: Text(
+                    //         'No classes added or created yet',
+                    //         style: TextStyle(
+                    //             color: Colors.indigo[100],
+                    //             fontSize: 30.0,
+                    //             fontWeight: FontWeight.bold),
+                    //       ),
+                    //     ),
+                    //   );
+                  },
                 );
               },
-            )
+            ),
           ),
         ),
-        floatingActionButton:  Consumer<UserDetails>(
-          builder: (context,user,child){
-            return Padding(
-              padding: EdgeInsets.only(top: _queryData.size.height-150),
-              child: FoldableOption(
-                icon1: Icons.add,
-                onTap1: (){
-                  dailogs.displayDialog(context,user.username,user.Useremail);
-                },
-                icon2: Icons.add_shopping_cart,
-                onTap2: (){
-                  dailogs.displayJoinClassDialog(context,user.username,user.Useremail);
-                },
-
-              ),
-            );
-          }
-        ),
+        floatingActionButton:
+            Consumer<UserDetails>(builder: (context, user, child) {
+          return Padding(
+            padding: EdgeInsets.only(top: _queryData.size.height - 150),
+            child: FoldableOption(
+              icon1: Icons.add,
+              onTap1: () {
+                dailogs.displayDialog(context, user.username, user.Useremail);
+              },
+              icon2: Icons.add_shopping_cart,
+              onTap2: () {
+                dailogs.displayJoinClassDialog(
+                    context, user.username, user.Useremail);
+              },
+            ),
+          );
+        }),
       ),
       onWillPop: onWillPop,
     );
   }
 }
 
-Widget Classes(double width,String imagePath,String expTitle,List<ListTile> list){
+Widget Classes(
+    double width, String imagePath, String expTitle, List<ListTile> list) {
   final Shader linearGradient = LinearGradient(
-    colors: <Color>[Colors.deepPurple,Colors.blue,Colors.white],
-  ).createShader(new Rect.fromLTWH(0.0,0.0, 200.0, 70.0));
+    colors: <Color>[Colors.deepPurple, Colors.blue, Colors.white],
+  ).createShader(new Rect.fromLTWH(0.0, 0.0, 200.0, 70.0));
   return Card(
     elevation: 3.0,
-    shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(7.0)
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7.0)),
     child: Column(
       children: [
         Container(
           width: width,
           height: 190.0,
           decoration: BoxDecoration(
-            image: DecorationImage(
-              fit: BoxFit.fill,
-              image: NetworkImage(imagePath)
-            )
-          ),
+              image: DecorationImage(
+                  fit: BoxFit.fill, image: NetworkImage(imagePath))),
         ),
         ExpansionTile(
-          title: Text(expTitle,style: TextStyle(
-            fontSize: 24.0,
-            fontWeight: FontWeight.bold,
-            // foreground: new Paint()..shader=linearGradient
-            color: Colors.black26
-          ),),
-          children: [
-            Column(
-              children:list
-            )
-          ],
+          title: Text(
+            expTitle,
+            style: TextStyle(
+                fontSize: 24.0,
+                fontWeight: FontWeight.bold,
+                // foreground: new Paint()..shader=linearGradient
+                color: Colors.black26),
+          ),
+          children: [Column(children: list)],
         )
       ],
     ),
   );
-
 }
