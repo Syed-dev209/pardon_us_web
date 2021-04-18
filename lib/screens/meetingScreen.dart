@@ -1,11 +1,16 @@
 import 'dart:async';
 import 'dart:html' as html;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:jitsi_meet/jitsi_meet.dart';
 import 'package:jitsi_meet/room_name_constraint.dart';
 import 'package:jitsi_meet/room_name_constraint_type.dart';
+import 'package:pardon_us/components/alertBox.dart';
+import 'package:pardon_us/models/excelServices.dart';
+import 'package:pardon_us/models/meetingController.dart';
+import 'package:pardon_us/models/messagesMethods.dart';
 import 'package:pardon_us/models/userDeatils.dart';
 //import 'package:pardon_us/screens/CallPage2.dart';
 import 'package:pardon_us/screens/callPage.dart';
@@ -27,6 +32,11 @@ class _MeetingScreenState extends State<MeetingScreen> {
   var isAudioMuted = true;
   var isVideoMuted = true;
   bool meetingStarted = false;
+  MeetingController _meetingController;
+  bool enableButton = false;
+  String fileName;
+  ExcelSheet exc = ExcelSheet();
+  FirebaseFirestore _firestore = FirebaseFirestore.instance;
   @override
   void dispose() {
     // dispose input controller
@@ -96,13 +106,81 @@ class _MeetingScreenState extends State<MeetingScreen> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6.0)),
               onPressed: () async {
+                _meetingController = MeetingController();
                 print('Start meeting pressed pressed');
-                _joinMeeting();
+
+                ///for TEACHER
+                if (Provider.of<UserDetails>(context, listen: false)
+                        .UserParticipantStatus ==
+                    "Teacher") {
+                  fileName = await exc.createNewExcel(
+                      Provider.of<UserDetails>(context, listen: false)
+                          .currentClassCode);
+
+                  bool check = await _meetingController.createMeeting(context);
+                  if (check) {
+                    setState(() {
+                      enableButton = true;
+                    });
+                    _joinMeeting();
+                  }
+                }
+
+                ///Student
+                else {
+                  bool check = await _meetingController.onJoinMeeting(context);
+                  if (check) {
+                    _joinMeeting();
+                  } else {
+                    AlertBoxes _alert = AlertBoxes();
+                    _alert.simpleAlertBox(context, Text('No host found'),
+                        Text('Your instructor has\'nt started meeting yet.'),
+                        () {
+                      Navigator.pop(context);
+                    });
+                  }
+                }
               },
             ),
             SizedBox(
               height: 20.0,
             ),
+            Provider.of<UserDetails>(context, listen: false)
+                        .UserParticipantStatus ==
+                    "Teacher"
+                ? ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      primary: Colors.indigo,
+                    ),
+                    onPressed: enableButton
+                        ? () async {
+                            _meetingController = MeetingController();
+                            if (Provider.of<UserDetails>(context, listen: false)
+                                    .UserParticipantStatus ==
+                                'Teacher') {
+                              print('terminator triggered, I am Teacher');
+                              bool check = await _meetingController.endMeeting(
+                                  context, fileName, exc);
+                              print('prinitng check = $check');
+                              if (check) {
+                                print(
+                                    'attendance uploaded and mission successful');
+                              } else {
+                                print('end meeting nahi chla ');
+                              }
+                            } else {
+                              print('terminator triggered, I am Student');
+                              await _meetingController
+                                  .onLeavingMeeting(context);
+                            }
+                            setState(() {
+                              enableButton = false;
+                            });
+                          }
+                        : null,
+                    child: Text('Generate Attendance Report'),
+                  )
+                : Text(' '),
             SizedBox(
               height: 30.0,
               child: Divider(
@@ -113,14 +191,85 @@ class _MeetingScreenState extends State<MeetingScreen> {
             SizedBox(
               height: 20.0,
             ),
-            ListTile(
-              leading: Image.asset('images/csv.png'),
-              title: Text('Attendance Report'),
-              subtitle: Text('Date:- 20/12/2010 Time:- 40:00 min'),
-            )
+            Provider.of<UserDetails>(context, listen: false)
+                        .UserParticipantStatus ==
+                    "Teacher"
+                ? Container(
+                    //color: Colors.indigo,
+                    height: MediaQuery.of(context).size.height * 0.45,
+                    child: SingleChildScrollView(
+                      child: StreamBuilder(
+                        stream: _firestore
+                            .collection('meetings')
+                            .doc(
+                                Provider.of<UserDetails>(context, listen: false)
+                                    .currentClassCode)
+                            .collection('meetingRecord')
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          if (!snapshot.hasData) {
+                            return Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          final record = snapshot.data.docs;
+                          List<Widget> tiles = [];
+                          for (var data in record) {
+                            if (data.data()['fileUrl'] != ' ') {
+                              tiles.add(reportTile(data.data()['DateTime'],
+                                  data.data()['fileUrl']));
+                            }
+                          }
+                          return Column(
+                            children: tiles,
+                          );
+                        },
+                      ),
+                    ),
+                  )
+                : Text(' ')
           ],
         ),
       ),
+    );
+  }
+
+  Widget reportTile(String date, String fileUrl) {
+    bool loader = false;
+    return ListTile(
+      onTap: () {
+        setState(() {
+          loader = true;
+        });
+        MessengerMethods _msg = MessengerMethods();
+        _msg.sendLink(
+            senderName:
+                Provider.of<UserDetails>(context, listen: false).username,
+            classCode: Provider.of<UserDetails>(context, listen: false)
+                .currentClassCode,
+            link: fileUrl,
+            type: 'link');
+        setState(() {
+          loader = false;
+        });
+
+        AlertBoxes _alert = AlertBoxes();
+        _alert.simpleAlertBox(context, Text('Congratulations'),
+            Text('Attendance report has been sent to students via messenger'),
+            () {
+          Navigator.pop(context);
+        });
+      },
+      trailing:
+          loader ? CircularProgressIndicator() : Icon(Icons.share_outlined),
+      leading: Image.asset('images/csv.png'),
+      title: Text('Attendance Report'),
+      subtitle: Text('Date:- $date'),
     );
   }
 

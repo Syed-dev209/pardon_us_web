@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase/firebase.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker_web/image_picker_web.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,6 +21,10 @@ class LogInMethods {
     GoogleSignInAccount googleSignInAccount = await googleSignIn.signIn();
     GoogleSignInAuthentication gsa = await googleSignInAccount.authentication;
     //AuthCredential credentials= GoogleAuthProvider.credential(idToken: gsa.idToken,accessToken: gsa.accessToken);
+    AuthCredential credential =
+        AuthCredential(providerId: gsa.idToken, signInMethod: gsa.accessToken);
+    var result = _auth.signInWithCredential(credential);
+    user = result;
     try {
       final userCheck = firestore
           .collection('user')
@@ -45,6 +48,10 @@ class LogInMethods {
     GoogleSignInAuthentication gsa = await googleSignInAccount.authentication;
     // AuthCredential credentials= GoogleAuthProvider.credential(idToken: gsa.idToken,accessToken: gsa.accessToken);
     // AuthCredential cre= GoogleAuthProvider.get
+    AuthCredential credential =
+        AuthCredential(providerId: gsa.idToken, signInMethod: gsa.accessToken);
+    var result = _auth.signInWithCredential(credential);
+    user = result;
     try {
       final userCheck = firestore
           .collection('user')

@@ -31,6 +31,17 @@ class MessengerMethods {
     });
   }
 
+  void sendLink(
+      {String senderName,
+      String classCode,
+      String link,
+      String type = 'link'}) {
+    sendTextMsg(
+        senderName: senderName,
+        classCode: classCode,
+        textMessage: link,
+        type: type);
+  }
   // Future<String> _uploadExerciseVideo(File video) async {
   //   String url = '';
   //   firebase_storage.StorageReference storageReference = firebase_storage
