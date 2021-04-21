@@ -1,6 +1,6 @@
 {
-    "name": "pardon_us",
-    "short_name": "pardon_us",
+    "name": "Pardon Us",
+    "short_name": "Pardon Us",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
