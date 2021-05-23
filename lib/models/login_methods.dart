@@ -46,7 +46,7 @@ class LogInMethods {
   Future<String> signinGoogle() async {
     GoogleSignInAccount googleSignInAccount = await googleSignIn.signIn();
     GoogleSignInAuthentication gsa = await googleSignInAccount.authentication;
-    // AuthCredential credentials= GoogleAuthProvider.credential(idToken: gsa.idToken,accessToken: gsa.accessToken);
+    //AuthCredential credentials= GoogleAuthProvider.credential(idToken: gsa.idToken,accessToken: gsa.accessToken);
     // AuthCredential cre= GoogleAuthProvider.get
     AuthCredential credential =
         AuthCredential(providerId: gsa.idToken, signInMethod: gsa.accessToken);
@@ -110,24 +110,32 @@ class LogInMethods {
 
   Future<String> registerUser(
       String email, String password, String name, MediaInfo mediaInfo) async {
+    String uid;
     final userCheck = await firestore
         .collection('user')
         .where('email', isEqualTo: email)
         .get();
-    if (userCheck == null) {
-      return 'user exist';
+    for (var i in userCheck.docs) {
+      uid = i.id;
     }
-    final newUser = await _auth.createUserWithEmailAndPassword(
-        email: email, password: password);
-    String imageUrl = await uploadProfileImageWeb(mediaInfo);
-    if (imageUrl == null) {
-      imageUrl =
-          'http://www.pngall.com/wp-content/uploads/5/User-Profile-Transparent.png';
+
+    if (uid == null) {
+      final newUser = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password)
+          .then((value) async {
+        String imageUrl = await uploadProfileImageWeb(mediaInfo);
+        if (imageUrl == null) {
+          imageUrl =
+              'http://www.pngall.com/wp-content/uploads/5/User-Profile-Transparent.png';
+        }
+        await firestore
+            .collection('user')
+            .add({'email': email, 'name': name, 'profile': imageUrl});
+        return 'created';
+      });
+    } else {
+      return 'not created';
     }
-    firestore
-        .collection('user')
-        .add({'email': email, 'name': name, 'profile': imageUrl});
-    return 'created';
   }
 
   Future<bool> logInUser(String email, String password) async {
