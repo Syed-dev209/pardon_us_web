@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:form_field_validator/form_field_validator.dart';
 import 'package:pardon_us/animation_transition/scale_transition.dart';
+import 'package:pardon_us/components/alertBox.dart';
 import 'package:pardon_us/models/connectivity.dart';
 import 'package:pardon_us/models/login_methods.dart';
 import 'package:pardon_us/models/userDeatils.dart';
@@ -255,46 +256,56 @@ class _LargePageState extends State<LargePage> {
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(50.0)),
                               onPressed: () async {
-                                InternetConnectivity checkNet =
-                                    new InternetConnectivity();
-                                try {
-                                  bool net = await checkNet.checkConnection();
-                                  if (!net) {
-                                    _onBasicAlertPressed(
-                                        context,
-                                        'No Internet Connection',
-                                        'Please check your connection before login');
-                                  }
-                                  setState(() {
-                                    showSpinner = true;
-                                  });
-                                  _login = new LogInMethods();
-                                  String check = await _login.signinGoogle();
-                                  print(check);
-                                  if (check != 'false') {
-                                    await getUser(check);
-                                    Provider.of<UserDetails>(context,
-                                            listen: false)
-                                        .setUser(name, email, uid, imageURl);
-                                    Navigator.push(
-                                        context, ScaleRoute(page: Start()));
-                                    setState(() {
-                                      showSpinner = false;
-                                    });
-                                  } else {
-                                    _onBasicAlertPressed(context, 'Error',
-                                        'Please register yourself before log in');
-                                  }
-                                  setState(() {
-                                    showSpinner = false;
-                                  });
-                                } catch (e) {
-                                  setState(() {
-                                    _onBasicAlertPressed(context, 'ERROR',
-                                        'Something went wrong please try again later.');
-                                    showSpinner = false;
-                                  });
-                                }
+                                AlertBoxes _alert = AlertBoxes();
+                                _alert.simpleAlertBox(
+                                    context,
+                                    Text('Sorry'),
+                                    Text(
+                                        'This Function is not available for time being.'),
+                                    () {
+                                  Navigator.pop(context);
+                                });
+                                // Inte
+                                // InternetConnectivity checkNet =
+                                //     new InternetConnectivity();
+                                // try {
+                                //   bool net = await checkNet.checkConnection();
+                                //   if (!net) {
+                                //     _onBasicAlertPressed(
+                                //         context,
+                                //         'No Internet Connection',
+                                //         'Please check your connection before login');
+                                //   }
+                                //   setState(() {
+                                //     showSpinner = true;
+                                //   });
+                                //   _login = new LogInMethods();
+                                //   String check = await _login.signinGoogle();
+                                //   print(check);
+                                //   if (check != 'false') {
+                                //     await getUser(check);
+                                //     Provider.of<UserDetails>(context,
+                                //             listen: false)
+                                //         .setUser(name, email, uid, imageURl);
+                                //     Navigator.push(
+                                //         context, ScaleRoute(page: Start()));
+                                //     setState(() {
+                                //       showSpinner = false;
+                                //     });
+                                //   } else {
+                                //     _onBasicAlertPressed(context, 'Error',
+                                //         'Please register yourself before log in');
+                                //   }
+                                //   setState(() {
+                                //     showSpinner = false;
+                                //   });
+                                // } catch (e) {
+                                //   setState(() {
+                                //     _onBasicAlertPressed(context, 'ERROR',
+                                //         'Something went wrong please try again later.');
+                                //     showSpinner = false;
+                                //   });
+                                // }
                               },
                             ),
                           ),
